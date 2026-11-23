@@ -139,7 +139,7 @@ rep("'ETA':10,'建議售價(NT$)':10};","'ETA':10,'建議售價(NT$)':10,'Story'
 rep("const SKIP=/MSRP|韓幣|₩|價|","const SKIP=/MSRP|NT\\$|Story|Activity|新款|延續|產地|價|",1)
 rep("document.getElementById('rgs').addEventListener('click',e=>{ const b=e.target.closest('[data-rg]'); if(b) setRefReg(b.dataset.rg); });\n",'',1)
 rep('。web=true 時不出現任何韓幣字樣','',1)
-rep("const box=$('#acct'); if(!AUTH||adminEditing()){ box.hidden=true; return; }","const box=$('#acct'); if(!AUTH||adminEditing()||!String((window.SDR_CONFIG||{}).SUBMIT_URL||'').trim()){ box.hidden=true; return; }  // 傳單模式（沒設收單網址）不顯示經銷商 Email 驗證列",1)
+rep("const box=$('#acct'); if(!AUTH||adminEditing()){ box.hidden=true; return; }","const box=$('#acct'); if(!AUTH||adminEditing()||!String((window.SDR_CONFIG||{}).SUBMIT_URL||'').trim()){ box.hidden=true; return; }  /* 傳單模式（沒設收單網址）不顯示經銷商 Email 驗證列 */",1)
 rep('--bg:#f2f4f8; --surface:#ffffff; --sunk:#e6ebf2; --line:#d2dae6; --fg:#121a26; --muted:#5d6979;','--bg:#f4f4f4; --surface:#ffffff; --sunk:#ebebeb; --line:#d6d6d6; --fg:#141414; --muted:#636363;',1)
 rep('--bg:#0b1019; --surface:#131a26; --sunk:#1b2433; --line:#2b384d; --fg:#e8eef7; --muted:#97a5ba;','--bg:#0c0c0c; --surface:#161616; --sunk:#202020; --line:#333333; --fg:#ededed; --muted:#a3a3a3;',2)
 rep('--brand:#1c1c1c; --brand-ink:#ffffff; --brand-2:#000000;','--brand:#000000; --brand-ink:#ffffff; --brand-2:#000000;',2)
@@ -203,5 +203,8 @@ rep("    `商品說明：${nOv}／${nSt} 款附原廠型錄英文說明（點「
 rep("""${it.fab?`<div><h4>材質與版型</h4><p>${esc(it.fab)}</p></div>`:''}</div>`:''}""",
     """${it.fab?`<div><h4>產地</h4><p>${esc(String(it.fab).replace(/^產地：/,''))}</p></div>`:''}${(it.ovEn||it.dtEn)?`<details class="en-src"><summary>原廠英文說明</summary><p>${esc([it.ovEn,it.dtEn].filter(Boolean).join('\\n\\n'))}</p></details>`:''}</div>`:''}""",2)
 rep(".detail p{margin:0;white-space:pre-line}",".detail p{margin:0;white-space:pre-line}\n.detail .en-src summary{cursor:pointer;font-size:12px;color:var(--muted)}.detail .en-src p{font-size:12px;color:var(--muted);margin-top:4px}",1)
+# ===== 收單開通（2026-11-23）：交單折數 2XU 未確認，沿用 DSTC 5 折並在交單檔註記 =====
+rep("const HO_DISC=0.5;   // 折數統一 5 折，可在交單檔「總表」改","const HO_DISC=0.5;   // 2XU 交單折數未確認，暫沿用 DSTC 5 折；可在交單檔「總表」B4 改",1)
+rep("← 改這格，三個分頁的 WHL TTL 會一起更新","← 改這格，三個分頁的 WHL TTL 會一起更新（2XU 折數未確認，暫沿用 5 折）",1)
 open(R+'index.html','w').write(s)
 print('ok')
