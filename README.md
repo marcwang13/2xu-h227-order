@@ -70,3 +70,9 @@ python3 -m http.server 8812   # 本機預覽 http://localhost:8812/
 - 卡片主標題是英文品名，旁邊中文類別；標籤顯示新款／延續款、Activity、Drop
 - Excel 訂單本欄位：Story、Drop、新款／延續、Activity、產地、建議售價(NT$)、零售金額(NT$)
 - Apps Script「月份」欄改「Drop」，金額改 NT$
+
+## 收單（2026-11-23 開通）
+
+- Apps Script：https://script.google.com/macros/s/AKfycbx_cDgnQo3qKWI2BrA_8bdBfPCBe_5ttDNonuz5EcfqEBy_mge-g4LhMa-p4cSR2tEu/exec（系統帳號 emerswhlsystem.marc@gmail.com，綁在試算表上；改 `apps-script/Code.gs` 後貼進編輯器，部署用「管理部署作業 → 鉛筆 → 新版本」，網址不變）
+- 後台試算表：https://docs.google.com/spreadsheets/d/1uG5_S6ga0fLiHiL4U_5OB-zYVQyy_yQmaKRqTVMpJnc/edit
+- 經銷商：Email 收 6 位數驗證碼登入後送單；訂單彙整只從 WHL 內部站 03 卡片開（會員票券）。
