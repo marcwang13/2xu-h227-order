@@ -1,12 +1,15 @@
 /**
  * 2XU H2-27 正式訂貨：收單程式（Google Apps Script，綁在 Google 試算表上）
  *
- * 安裝：
- * 1. 新增一個 Google 試算表 → 選單「擴充功能」→「Apps Script」
+ * 安裝（照 DSTC／WAAC：系統帳號 emerswhlsystem.marc@gmail.com 名下，逐步說明見 upl9/2xu_as/STEPS.md）：
+ * 1. 系統帳號新增 Google 試算表「2XU H2-27 正式訂貨 線上訂單」→ 選單「擴充功能」→「Apps Script」
  * 2. 把這個檔案的內容整份貼上取代原本的程式碼，儲存
  * 3. 右上「部署」→「新增部署作業」→ 類型選「網頁應用程式」
  *    執行身分：我；誰可以存取：所有人 → 部署 → 依畫面授權
- * 4. 複製「網頁應用程式網址」，貼到網站的 config.js 的 SUBMIT_URL
+ * 4. 複製「網頁應用程式網址」（…/exec），貼到網站的 config.js 的 SUBMIT_URL
+ * 指令碼屬性：都不用手動設（同 DSTC／WAAC）。AUTH_SECRET 第一次寄驗證碼時自動產生；
+ *   PREORDER_SSO_SECRET 沒設時訂單彙整票券改請 Early Buy 收單程式代驗（SSO_PROXY_URL）；ADMIN_KEY 沒設＝舊的 key 管理入口關閉。
+ *   測試期間可加 NOTIFY_TO_TEST（例：系統信箱），內部通知信改寄這裡、不寄會員群組；測完刪掉這個屬性即恢復寄 NOTIFY_TO。
  *
  * 每張訂單會寫入兩個分頁：
  * - 訂單：一張單一列（同一個訂單編號再次送出會覆蓋舊資料）
@@ -257,7 +260,8 @@ function removeOid_(sh, oid) {
 }
 
 // ── 每張訂單一個分頁（分頁名＝經銷商／店名）──────────────────────────
-const SIZE_ORDER = ['XXS', 'XS', 'S', 'M', 'L', 'XL', '2XL', 'XXL', '3XL', '4XL', 'FREE', 'FREE SIZE', 'F'];
+// 2XU 尺寸順序同網站 SZ_ORDER（含 M1/M2/L1/L2 壓縮尺寸、T＝Tall 加長、OSFA 單一尺寸）
+const SIZE_ORDER = ['XXS', 'XS', 'S', 'M', 'M1', 'M2', 'L', 'L1', 'L2', 'XL', '2XL', 'XXL', '3XL', 'XXXL', '4XL', 'XST', 'ST', 'MT', 'LT', 'XLT', 'XXLT', 'OSFA', 'FREE', 'FREE SIZE', 'F'];
 const RESERVED_TABS = ['訂單', '明細', '_紀錄'];
 
 function sizeCmp_(a, b) {
@@ -340,7 +344,7 @@ function writeOrderTab_(ss, log, oid, m, rows) {
   const all = [head].concat(body, [foot]);
   sh.getRange(top, 1, all.length, head.length).setValues(all);
   sh.getRange(top, 1, 1, head.length).setFontWeight('bold').setBackground('#111111').setFontColor('#ffffff');
-  sh.getRange(top + all.length - 1, 1, 1, head.length).setFontWeight('bold').setBackground('#f3e6e6');
+  sh.getRange(top + all.length - 1, 1, 1, head.length).setFontWeight('bold').setBackground('#eeeeee');
   sh.getRange(top, 1, all.length, head.length).setBorder(true, true, true, true, true, true, '#dddddd', SpreadsheetApp.BorderStyle.SOLID);
   const firstSize = head.length - 3 - sizes.length + 1;
   sh.getRange(top, firstSize, all.length, sizes.length + 1).setHorizontalAlignment('center');
@@ -432,13 +436,20 @@ function orderHtml_(d, rows, title, intro, footer) {
   ${footer || ''}</div>`;
 }
 
+// 內部通知收件人：指令碼屬性 NOTIFY_TO_TEST 有值時（測試期間）改寄那裡，不寄會員群組
+function notifyTo_() {
+  const t = String(PropertiesService.getScriptProperties().getProperty('NOTIFY_TO_TEST') || '').trim();
+  return t || NOTIFY_TO;
+}
+
 function notify_(ss, d, rows, isEdit, kindOverride, att) {
-  if (!NOTIFY_TO) return;
+  const to = notifyTo_();
+  if (!to) return;
   const fmt = n => Number(n || 0).toLocaleString('en-US');
   const kind = kindOverride || (isEdit ? '訂單修改' : '新訂單');
   const subject = `【2XU H2-27 正式訂貨 ${kind}】${d.store || '（未填店名）'}｜${fmt(d.qty)} 件｜NT$${fmt(d.amount)}`;
   const html = orderHtml_(d, rows, kind, '', `<p><a href="${ss.getUrl()}" style="color:#111111">開啟 Google 試算表看完整訂單</a></p>`);
-  const msg = { to: NOTIFY_TO, subject: subject, htmlBody: html, name: '2XU H2-27 正式訂貨' };
+  const msg = { to: to, subject: subject, htmlBody: html, name: '2XU H2-27 正式訂貨' };
   if (att) msg.attachments = [att];
   MailApp.sendEmail(msg);
 }
