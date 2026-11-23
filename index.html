@@ -310,6 +310,7 @@ main{padding-block:12px}
 .detail{font-size:13px;line-height:1.65;display:grid;gap:8px;margin-top:4px;padding:10px;background:var(--sunk);border-radius:4px}
 .detail h4{margin:0 0 2px;font-size:12px;color:var(--muted);font-weight:500;letter-spacing:.06em}
 .detail p{margin:0;white-space:pre-line}
+.detail .en-src summary{cursor:pointer;font-size:12px;color:var(--muted)}.detail .en-src p{font-size:12px;color:var(--muted);margin-top:4px}
 .order{display:flex;flex-direction:column;align-items:flex-end;gap:8px;min-width:0}
 .price{font-family:var(--f-mono);font-size:15px;font-weight:500}
 .price small{font-family:var(--f-body);font-size:11px;color:var(--muted);margin-right:4px}
@@ -659,9 +660,10 @@ tfoot td{font-weight:700;background:var(--sunk)}
   window.claude={ use:async n=> n==='downloads'?downloads : n==='user'?user : n==='db'?(URL_?db:null) : null };
 })();
 </script>
-<script src="data.js?v=20261123a"></script>
-<script src="imgs.js?v=20261123a"></script>
-<script src="rp.js?v=20261123a"></script>
+<script src="data.js?v=20261123h"></script>
+<script src="imgs.js?v=20261123h"></script>
+<script src="rp.js?v=20261123h"></script>
+<script src="of.js?v=20261123h"></script>
 <script>
 (function(){
 const ITEMS = window.SDR_ITEMS || [];
@@ -673,6 +675,12 @@ ITEMS.forEach(i=>{ const r=RPI[i.id]; if(r&&r.length){ const old=i.photos||[], o
 // 同款借圖（rp.js X2_RPB）：沒有自己實拍的款色，借同款有實拍顏色的正反面（排在原廠配色照後面），說明照 WHL build_imgref 寫法；卡片按鈕寫「同款實體圖」
 const RPB = window.X2_RPB || {};
 ITEMS.forEach(i=>{ const b=RPB[i.id], r=b&&RPI[b[0]]; if(!r||i.hasRP) return; const old=i.photos||[]; i.photos=[...old,...r.map(x=>x[0])]; i.phcap=[...old.map(()=>'原廠配色照'),...r.map(x=>x[1].replace(/^實體/,'同款實體'))]; i.rpBorrow=b[1]; i.rpBorrowOnly=!old.length; });
+// 官網圖（of.js X2_OF）：只收款號＋色號與 2XU 官網 SKU 完全相同的款色。p＝商品圖（去背），w＝實穿照（取代借同款實體圖）
+const OF = window.X2_OF || {};
+ITEMS.forEach(i=>{ const o=OF[i.id]; if(!o) return; if(o.p&&o.p.length){ i.prods=o.p.map(x=>x[0]); i.prodcap=o.p.map(x=>x[1]); }
+  if(o.w&&o.w.length){ const keep=!i.rpBorrowOnly; i.photos=[...o.w.map(x=>x[0]),...(keep?(i.photos||[]):[])]; i.phcap=[...o.w.map(x=>x[1]),...(keep?(i.phcap||[]):[])]; i.hasRP=true; i.hasOF=true; if(i.rpBorrowOnly){ i.rpBorrow=''; i.rpBorrowOnly=false; } } });
+const lbList=(it,k)=>k==='prod'?(it.prods||[]):k==='photo'?(it.photos||[]):(it.doll?[it.doll]:[]);
+const lbCap=(it,k)=>k==='prod'?(it.prodcap||[]):k==='photo'?(it.phcap||[]):[];
 const hasImg = h=>!!(h&&(IMG[h]||RP[h]));
 const BY = Object.fromEntries(ITEMS.map(i=>[i.id,i]));
 // 單色款式圖：有裁切框的款色，款式圖（卡片、放大、Excel）只顯示該色。it.photos 只放實體圖（配色照），沒有就顯示「實體圖待更新」
@@ -688,9 +696,10 @@ function dataNotes(web){
   const nSt=new Set(ITEMS.map(i=>i.style)).size, nOv=new Set(ITEMS.filter(i=>i.ov||i.dt).map(i=>i.style)).size, nTall=ITEMS.filter(i=>i.sizes.some(z=>/T$/.test(z))).length;
   const L=['下單截止：2026/11/26（四）',
     '價格：顯示台灣建議售價（NT$ MSRP），金額＝建議售價 × 件數',
-    `商品說明：${nOv}／${nSt} 款附原廠型錄英文說明（點「看商品細節與材質」），中文說明待補`,
+    `商品說明：${nOv}／${nSt} 款附原廠型錄說明，已翻成繁體中文（點「看商品細節與材質」；PWX、MCS 等技術名詞保留英文${web?'，原廠英文可在細節區展開':''}），其餘 ${nSt-nOv} 款原廠型錄沒有說明`,
     `款式圖：原廠訂單表附圖${nDB?`；其中 ${nDB} 款色原廠沒附自己顏色的圖，借同款其他顏色（標「同款參考／顏色不同」）`:''}`,
     `實體圖：${nRP} 款色有原廠型錄照片（點「實體圖」）${nRB?`；另 ${nRB} 款色借同款其他顏色的型錄照（標「同款實體圖」，顏色不同僅供款式參考）`:''}；型錄 PDF 已壓縮，照片解析度有限`,
+    `官網高解析圖：${ITEMS.filter(i=>i.prods||i.hasOF).length} 款色有 2XU 官網同款同色照片（「商品圖」去背正面／背面／側面 ${ITEMS.filter(i=>i.prods).length} 款色、官網實穿照 ${ITEMS.filter(i=>i.hasOF).length} 款色，長邊約 1400px）；其餘款式圖是原廠訂單表附圖（原檔約 200–300px，原廠沒有更高解析）`,
     `尺寸：依原廠訂單表各色開放尺寸${nTall?`；${nTall} 款色另有加長版（XST／ST／MT／LT／XLT／XXLT，T＝Tall），排在一般尺寸後面`:''}`];
   return L;
 }
@@ -767,21 +776,22 @@ $('#only').addEventListener('change',e=>{ S.only=e.target.checked; renderList();
 // ---------- product list ----------
 function picHTML(it){
   const ph=it.photos||[];
-  const h = it.doll||ph[0];
+  const pr=it.prods||[];
+  const h = pr[0]||(it.hasOF&&ph[0])||it.doll||ph[0];  // 有官網高解析圖時卡片主圖用官網圖
   const src = h && IMG[h];
-  const sw = `<div class="sw">${it.doll?'<button data-pic="doll">款式圖</button>':''}<button data-pic="photo"${ph.length?'':' disabled title="實體圖待更新"'}${it.rpBorrow?` title="${esc(it.rpBorrow)}"`:''}>${it.rpBorrowOnly?'同款實體圖':'實體圖'}${ph.length>1?' '+ph.length:''}</button></div>`;
+  const sw = `<div class="sw">${it.doll?'<button data-pic="doll">款式圖</button>':''}${pr.length?`<button data-pic="prod" title="2XU 官網同款同色商品圖（正面／背面／側面）">商品圖${pr.length>1?' '+pr.length:''}</button>`:''}<button data-pic="photo"${ph.length?'':' disabled title="實體圖待更新"'}${it.rpBorrow?` title="${esc(it.rpBorrow)}"`:''}>${it.rpBorrowOnly?'同款實體圖':'實體圖'}${ph.length>1?' '+ph.length:''}</button></div>`;
   if(!h&&!src) return `<span class="none">圖片待補</span>`;
   const pc=(PC[it.id]&&h&&h===it.doll)?` data-pc="${esc(it.id)}"`:'';
   const fb=src?` onerror="this.onerror=null;this.src='${src}'"`:'';
-  return `<img src="${h?big(h):src}" alt="${esc(it.en+' '+it.color)}" data-zoom loading="lazy" decoding="async"${fb}${pc}>${sw}`;
+  return `<img src="${h?big(h):src}" alt="${esc(it.en+' '+it.color)}" data-zoom="${h===pr[0]&&pr.length?'prod':h===it.doll?'doll':'photo'}" loading="lazy" decoding="async"${fb}${pc}>${sw}`;
 }
 let LB=null;
-function openLB(id,kind,ev){ const it=BY[id]; const ph=it.photos||[]; if(kind==='photo'&&!ph.length) kind='doll'; if(kind==='doll'&&!it.doll) kind='photo'; LB={id,kind,i:0,ox:ev?ev.clientX:null,oy:ev?ev.clientY:null}; renderLB(true); }
+function openLB(id,kind,ev){ const it=BY[id]; if(!lbList(it,kind).length) kind=['doll','prod','photo'].find(k=>lbList(it,k).length)||'doll'; LB={id,kind,i:0,ox:ev?ev.clientX:null,oy:ev?ev.clientY:null}; renderLB(true); }
 // 實體圖放大：圖片區高度沿用娃娃圖圖框高度（min(76vh,620px)），照片 contain 填滿高度；視窗寬度依照片比例收窄貼合（上下左右只留 8px 內距），
 // 最窄 300px 讓標題列／切換鈕／借圖說明可讀（文字換行），最寬 min(94vw,960px)；寬度不夠（手機）時改縮視窗高度貼合。用照片原始寬高（rp.js）同步計算，切換不閃動。直接用 2000px 原檔由瀏覽器縮小
 function fitPhoto(){ const z=document.querySelector('#overlay .zm'); if(!z) return; const zi=z.querySelector('.zm-img');
-  if(!LB||LB.kind!=='photo'){ z.style.width=''; z.style.height=''; return; }
-  const it=BY[LB.id], h=(it.photos||[])[LB.i], d=RP[h]; if(!d||!zi){ z.style.width=''; z.style.height=''; return; }
+  if(!LB||LB.kind==='doll'){ z.style.width=''; z.style.height=''; return; }
+  const it=BY[LB.id], h=lbList(it,LB.kind)[LB.i], d=RP[h]; if(!d||!zi){ z.style.width=''; z.style.height=''; return; }
   const ar=d[0]/d[1], P=16, vw=document.documentElement.clientWidth, vh=window.innerHeight;
   const H0=Math.min(vh*.76,620), maxW=Math.min(vw*.94,960), minW=Math.min(300,maxW);
   z.style.height=H0+'px';
@@ -791,18 +801,19 @@ function fitPhoto(){ const z=document.querySelector('#overlay .zm'); if(!z) retu
     const nw=Math.max(minW,Math.round(iw)); z.style.width=nw+'px'; z.style.height=Math.round(chrome+ih)+'px'; if(Math.abs(nw-w)<2) break; w=nw; } }
 window.addEventListener('resize',()=>fitPhoto());
 function renderLB(anim){
-  const it=BY[LB.id]; const ph=it.photos||[]; const isP=LB.kind==='photo';
+  const it=BY[LB.id]; const ph=lbList(it,LB.kind); const isP=LB.kind!=='doll'; const pcap=lbCap(it,LB.kind);
   const h=isP?ph[LB.i]:it.doll;
   const img=h?`<img src="${big(h)}" alt="${esc(it.en+' '+it.color)}"${(!isP&&PC[it.id])?` data-pc="${esc(it.id)}"`:''}${IMG[h]?` onerror="this.onerror=null;this.src='${IMG[h]}'"`:''}>`:'<span class="none">尚無圖片</span>';
-  const cap=(isP&&it.phcap&&it.phcap[LB.i])?`<span class="zm-cap">${esc(it.phcap[LB.i])}</span>`:'';
+  const cap=(isP&&pcap[LB.i])?`<span class="zm-cap">${esc(pcap[LB.i])}</span>`:'';
 
   const arrows=(isP&&ph.length>1)?`<button class="zm-arrow l" data-lb="-1" aria-label="上一張">‹</button><button class="zm-arrow r" data-lb="1" aria-label="下一張">›</button>`:'';
-  const tabs=(it.doll&&ph.length)?`<div class="zm-tabs"><button data-lbk="doll" aria-pressed="${!isP}">款式圖</button><button data-lbk="photo" aria-pressed="${isP}">實體圖</button></div>`:'';
+  const kinds=[['doll','款式圖'],['prod','商品圖'],['photo','實體圖']].filter(([k])=>lbList(it,k).length);
+  const tabs=kinds.length>1?`<div class="zm-tabs">${kinds.map(([k,n])=>`<button data-lbk="${k}" aria-pressed="${LB.kind===k}">${n}</button>`).join('')}</div>`:'';
   const cnt=(isP&&ph.length>1)?`<span class="zm-count">${LB.i+1}/${ph.length}</span>`:'';
   const style=(anim&&LB.ox!=null)?` style="transform-origin:${LB.ox}px ${LB.oy}px"`:'';
   const existing=document.querySelector('#overlay .zm');
   if(existing && !anim){ existing.className='zm '+(isP?'photo':'doll'); const zi=existing.querySelector('.zm-img'); zi.innerHTML=img; existing.querySelector('.zm-nav').innerHTML=arrows; existing.querySelector('.zm-bar').innerHTML=`<span class="nm">${esc(it.zh||it.en)} ・ ${esc(it.color)}</span>${cap}${cnt}${tabs}`; fitPhoto(); return; }
-  $('#overlay').innerHTML=`<div class="zm-scrim" data-close><div class="zm ${isP?'photo':'doll'}" role="dialog" aria-label="商品圖片"${style}><button class="zm-x" data-close aria-label="關閉">×</button><div class="zm-img">${img}</div><div class="zm-nav">${arrows}</div>${it.rpBorrow?`<div class="zm-note">${esc(it.rpBorrow)}</div>`:''}<div class="zm-bar"><span class="nm">${esc(it.zh||it.en)} ・ ${esc(it.color)}</span>${cap}${cnt}${tabs}</div></div></div>`;
+  $('#overlay').innerHTML=`<div class="zm-scrim" data-close><div class="zm ${isP?'photo':'doll'}" role="dialog" aria-label="商品圖片"${style}><button class="zm-x" data-close aria-label="關閉">×</button><div class="zm-img">${img}</div><div class="zm-nav">${arrows}</div>${(it.rpBorrow&&LB.kind==='photo')?`<div class="zm-note">${esc(it.rpBorrow)}</div>`:''}<div class="zm-bar"><span class="nm">${esc(it.zh||it.en)} ・ ${esc(it.color)}</span>${cap}${cnt}${tabs}</div></div></div>`;
   fitPhoto();
   if(anim&&LB.ox!=null){ const z=$('#overlay .zm'); const r=z.getBoundingClientRect(); z.style.transformOrigin=`${LB.ox-r.left}px ${LB.oy-r.top}px`; }
 }
@@ -855,7 +866,7 @@ function itemHTML(it){
       ${it.ov?`<p class="ov">${esc(it.ov)}</p>`:''}
       ${webNote(it)?`<div class="note">${esc(webNote(it))}</div>`:''}
       <div class="btnrow">${(it.dt||it.tech||it.fab)?`<button class="more${open?' on':''}" data-more>${open?'收合':'看商品細節與材質'}</button>`:''}${refBtnHTML(it)}</div>
-      ${open?`<div class="detail">${it.dt?`<div><h4>商品特色與機能</h4><p>${esc(it.dt)}</p></div>`:''}${it.fab?`<div><h4>材質與版型</h4><p>${esc(it.fab)}</p></div>`:''}</div>`:''}
+      ${open?`<div class="detail">${it.dt?`<div><h4>商品特色與機能</h4><p>${esc(it.dt)}</p></div>`:''}${it.fab?`<div><h4>產地</h4><p>${esc(String(it.fab).replace(/^產地：/,''))}</p></div>`:''}${(it.ovEn||it.dtEn)?`<details class="en-src"><summary>原廠英文說明</summary><p>${esc([it.ovEn,it.dtEn].filter(Boolean).join('\n\n'))}</p></details>`:''}</div>`:''}
     </div>
     ${refHTML(it)}
     <div class="order">
@@ -894,7 +905,7 @@ function groupHTML(its){
       <div class="code">${esc(it.style||'')}・${esc(it.sheet)}・${esc(it.act||'')}${whenOf(it)&&new Set(its.map(whenOf)).size===1?'・'+esc(whenOf(it)):''}</div>
       ${it.ov?`<p class="ov">${esc(it.ov)}</p>`:''}
       <div class="btnrow">${(it.dt||it.tech||it.fab)?`<button class="more${open?' on':''}" data-more>${open?'收合':'看商品細節與材質'}</button>`:''}${refBtnHTML(it)}</div>
-      ${open?`<div class="detail">${it.dt?`<div><h4>商品特色與機能</h4><p>${esc(it.dt)}</p></div>`:''}${it.fab?`<div><h4>材質與版型</h4><p>${esc(it.fab)}</p></div>`:''}</div>`:''}
+      ${open?`<div class="detail">${it.dt?`<div><h4>商品特色與機能</h4><p>${esc(it.dt)}</p></div>`:''}${it.fab?`<div><h4>產地</h4><p>${esc(String(it.fab).replace(/^產地：/,''))}</p></div>`:''}${(it.ovEn||it.dtEn)?`<details class="en-src"><summary>原廠英文說明</summary><p>${esc([it.ovEn,it.dtEn].filter(Boolean).join('\n\n'))}</p></details>`:''}</div>`:''}
       ${refHTML(it)}
     </div>
     ${its.map(rowHTML).join('')}
@@ -1039,16 +1050,16 @@ $('#list').addEventListener('click',e=>{
   if(e.target.closest('[data-ref]')){ const st=BY[id].style; refOpen.has(st)?refOpen.delete(st):refOpen.add(st); keepPos(unit,()=>refRerender(st),'[data-ref]'); return; }
   if(e.target.closest('[data-more]')){ S.open.has(id)?S.open.delete(id):S.open.add(id); keepPos(unit,()=>rerenderUnit(BY[id].style),`[data-id="${CSS.escape(id)}"] [data-more]`); return; }
   const p=e.target.closest('[data-pic]'); if(p){ openLB(id,p.dataset.pic,e); return; }
-  if(e.target.closest('[data-zoom]')){ openLB(id,(BY[id].doll?'doll':'photo'),e); }
+  const zm=e.target.closest('[data-zoom]'); if(zm){ openLB(id,zm.dataset.zoom||(BY[id].doll?'doll':'photo'),e); }
 });
 $('#overlay').addEventListener('click',e=>{
   const a=e.target.closest('[data-lb]');
   const k=e.target.closest('[data-lbk]');
   if(LB && k){ LB.kind=k.dataset.lbk; LB.i=0; renderLB(false); return; }
-  if(LB && a){ const n=(BY[LB.id].photos||[]).length; LB.i=(LB.i+(+a.dataset.lb)+n)%n; renderLB(false); return; }
+  if(LB && a){ const n=lbList(BY[LB.id],LB.kind).length; LB.i=(LB.i+(+a.dataset.lb)+n)%n; renderLB(false); return; }
   if(e.target.closest('.zm') && !e.target.closest('.zm-x')) return;
   if(e.target.closest('[data-close]')||e.target.classList.contains('scrim')) closeOverlay(); });
-document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeOverlay(); if(LB&&LB.kind==='photo'&&(e.key==='ArrowRight'||e.key==='ArrowLeft')){ const n=(BY[LB.id].photos||[]).length; if(n>1){ LB.i=(LB.i+(e.key==='ArrowRight'?1:-1)+n)%n; renderLB(false); } } });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeOverlay(); if(LB&&LB.kind!=='doll'&&(e.key==='ArrowRight'||e.key==='ArrowLeft')){ const n=lbList(BY[LB.id],LB.kind).length; if(n>1){ LB.i=(LB.i+(e.key==='ArrowRight'?1:-1)+n)%n; renderLB(false); } } });
 function closeOverlay(){ $('#overlay').innerHTML=''; LB=null; }
 
 // clear (in-page confirm)
