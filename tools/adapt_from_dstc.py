@@ -149,5 +149,59 @@ rep("  if(!it) return '找不到商品';\n  const cat=String(it.cat||'');","  if
 rep("notes?'這季目錄都是服裝，沒有配件和鞋。上衣是 T 恤和 POLO；外套含羽絨外套、輕量羽絨和 GORE-TEX 外套；背心含羽絨背心。':''","notes?'大類跟網頁一樣：上身、下身、配件（袖套、小腿套、襪子、帽款、包款、手套、泳鏡等）。':''",1)
 rep("'這季目錄都是服裝，沒有配件和鞋。大類依品類：上衣是 T 恤和 POLO，外套含羽絨外套、輕量羽絨和 GORE-TEX 外套，背心含羽絨背心。款色是款號加顏色；","'大類跟網頁一樣：上身、下身、配件（袖套、小腿套、襪子、帽款、包款、手套、泳鏡等）。款色是款號加顏色；",1)
 rep("系列取商品資料的系列欄，寫成「產品線｜主題」，例如 PREMIUM TECH ESSENTIAL｜TOUGH、SNOW｜CANON。訂貨窗口不另外拆開。沒有系列欄的款，改用主題。","系列寫成「Story｜Activity」，例如 Aero｜跑步、X Core｜團體運動。",2)
+
+# --- 2XU 官網高解析圖（of.js，tools/build_official.py）：卡片／放大檢視多一組「商品圖」（去背正面／背面／側面／細節），官網實穿照排在實體圖最前面 ---
+rep('data.js?v=20261123a','data.js?v=20261123h',1); rep('imgs.js?v=20261123a','imgs.js?v=20261123h',1)
+rep('<script src="rp.js?v=20261123a"></script>','<script src="rp.js?v=20261123h"></script>\n<script src="of.js?v=20261123h"></script>',1)
+rep("const hasImg = h=>!!(h&&(IMG[h]||RP[h]));",
+"""// 官網圖（of.js X2_OF）：只收款號＋色號與 2XU 官網 SKU 完全相同的款色。p＝商品圖（去背），w＝實穿照（取代借同款實體圖）
+const OF = window.X2_OF || {};
+ITEMS.forEach(i=>{ const o=OF[i.id]; if(!o) return; if(o.p&&o.p.length){ i.prods=o.p.map(x=>x[0]); i.prodcap=o.p.map(x=>x[1]); }
+  if(o.w&&o.w.length){ const keep=!i.rpBorrowOnly; i.photos=[...o.w.map(x=>x[0]),...(keep?(i.photos||[]):[])]; i.phcap=[...o.w.map(x=>x[1]),...(keep?(i.phcap||[]):[])]; i.hasRP=true; i.hasOF=true; if(i.rpBorrowOnly){ i.rpBorrow=''; i.rpBorrowOnly=false; } } });
+const lbList=(it,k)=>k==='prod'?(it.prods||[]):k==='photo'?(it.photos||[]):(it.doll?[it.doll]:[]);
+const lbCap=(it,k)=>k==='prod'?(it.prodcap||[]):k==='photo'?(it.phcap||[]):[];
+const hasImg = h=>!!(h&&(IMG[h]||RP[h]));""",1)
+# 資料待更新說明：官網圖
+rep("    `尺寸：依原廠訂單表各色開放尺寸",
+"""    `官網高解析圖：${ITEMS.filter(i=>i.prods||i.hasOF).length} 款色有 2XU 官網同款同色照片（「商品圖」去背正面／背面／側面 ${ITEMS.filter(i=>i.prods).length} 款色、官網實穿照 ${ITEMS.filter(i=>i.hasOF).length} 款色，長邊約 1400px）；其餘款式圖是原廠訂單表附圖（原檔約 200–300px，原廠沒有更高解析）`,
+    `尺寸：依原廠訂單表各色開放尺寸""",1)
+# 卡片：有商品圖時卡片主圖用商品圖第一張；按鈕 款式圖／商品圖／實體圖
+rep("""  const h = it.doll||ph[0];
+  const src = h && IMG[h];
+  const sw = `<div class="sw">${it.doll?'<button data-pic="doll">款式圖</button>':''}""",
+"""  const pr=it.prods||[];
+  const h = pr[0]||(it.hasOF&&ph[0])||it.doll||ph[0];  // 有官網高解析圖時卡片主圖用官網圖
+  const src = h && IMG[h];
+  const sw = `<div class="sw">${it.doll?'<button data-pic="doll">款式圖</button>':''}${pr.length?`<button data-pic="prod" title="2XU 官網同款同色商品圖（正面／背面／側面）">商品圖${pr.length>1?' '+pr.length:''}</button>`:''}""",1)
+rep("""  return `<img src="${h?big(h):src}" alt="${esc(it.en+' '+it.color)}" data-zoom loading""",
+    """  return `<img src="${h?big(h):src}" alt="${esc(it.en+' '+it.color)}" data-zoom="${h===pr[0]&&pr.length?'prod':h===it.doll?'doll':'photo'}" loading""",1)
+rep("""function openLB(id,kind,ev){ const it=BY[id]; const ph=it.photos||[]; if(kind==='photo'&&!ph.length) kind='doll'; if(kind==='doll'&&!it.doll) kind='photo'; LB=""",
+    """function openLB(id,kind,ev){ const it=BY[id]; if(!lbList(it,kind).length) kind=['doll','prod','photo'].find(k=>lbList(it,k).length)||'doll'; LB=""",1)
+rep("""  if(!LB||LB.kind!=='photo'){ z.style.width=''; z.style.height=''; return; }
+  const it=BY[LB.id], h=(it.photos||[])[LB.i], d=RP[h];""",
+    """  if(!LB||LB.kind==='doll'){ z.style.width=''; z.style.height=''; return; }
+  const it=BY[LB.id], h=lbList(it,LB.kind)[LB.i], d=RP[h];""",1)
+rep("""  const it=BY[LB.id]; const ph=it.photos||[]; const isP=LB.kind==='photo';
+  const h=isP?ph[LB.i]:it.doll;""",
+    """  const it=BY[LB.id]; const ph=lbList(it,LB.kind); const isP=LB.kind!=='doll'; const pcap=lbCap(it,LB.kind);
+  const h=isP?ph[LB.i]:it.doll;""",1)
+rep("""  const cap=(isP&&it.phcap&&it.phcap[LB.i])?`<span class="zm-cap">${esc(it.phcap[LB.i])}</span>`:'';""",
+    """  const cap=(isP&&pcap[LB.i])?`<span class="zm-cap">${esc(pcap[LB.i])}</span>`:'';""",1)
+rep("""  const tabs=(it.doll&&ph.length)?`<div class="zm-tabs"><button data-lbk="doll" aria-pressed="${!isP}">款式圖</button><button data-lbk="photo" aria-pressed="${isP}">實體圖</button></div>`:'';""",
+    """  const kinds=[['doll','款式圖'],['prod','商品圖'],['photo','實體圖']].filter(([k])=>lbList(it,k).length);
+  const tabs=kinds.length>1?`<div class="zm-tabs">${kinds.map(([k,n])=>`<button data-lbk="${k}" aria-pressed="${LB.kind===k}">${n}</button>`).join('')}</div>`:'';""",1)
+rep("""${it.rpBorrow?`<div class="zm-note">${esc(it.rpBorrow)}</div>`:''}<div class="zm-bar">""","""${(it.rpBorrow&&LB.kind==='photo')?`<div class="zm-note">${esc(it.rpBorrow)}</div>`:''}<div class="zm-bar">""",1)
+rep("""  if(e.target.closest('[data-zoom]')){ openLB(id,(BY[id].doll?'doll':'photo'),e); }""",
+    """  const zm=e.target.closest('[data-zoom]'); if(zm){ openLB(id,zm.dataset.zoom||(BY[id].doll?'doll':'photo'),e); }""",1)
+rep("""  if(LB && a){ const n=(BY[LB.id].photos||[]).length; LB.i=""","""  if(LB && a){ const n=lbList(BY[LB.id],LB.kind).length; LB.i=""",1)
+rep("""if(LB&&LB.kind==='photo'&&(e.key==='ArrowRight'||e.key==='ArrowLeft')){ const n=(BY[LB.id].photos||[]).length;""",
+    """if(LB&&LB.kind!=='doll'&&(e.key==='ArrowRight'||e.key==='ArrowLeft')){ const n=lbList(BY[LB.id],LB.kind).length;""",1)
+
+# --- 中文說明（Marc 11/23）：data.js 的 ov／dt 已是繁中（tools/zh/zh.json），原廠英文在 ovEn／dtEn，細節區可展開「原廠英文說明」 ---
+rep("    `商品說明：${nOv}／${nSt} 款附原廠型錄英文說明（點「看商品細節與材質」），中文說明待補`,",
+    "    `商品說明：${nOv}／${nSt} 款附原廠型錄說明，已翻成繁體中文（點「看商品細節與材質」；PWX、MCS 等技術名詞保留英文${web?'，原廠英文可在細節區展開':''}），其餘 ${nSt-nOv} 款原廠型錄沒有說明`,",1)
+rep("""${it.fab?`<div><h4>材質與版型</h4><p>${esc(it.fab)}</p></div>`:''}</div>`:''}""",
+    """${it.fab?`<div><h4>產地</h4><p>${esc(String(it.fab).replace(/^產地：/,''))}</p></div>`:''}${(it.ovEn||it.dtEn)?`<details class="en-src"><summary>原廠英文說明</summary><p>${esc([it.ovEn,it.dtEn].filter(Boolean).join('\\n\\n'))}</p></details>`:''}</div>`:''}""",2)
+rep(".detail p{margin:0;white-space:pre-line}",".detail p{margin:0;white-space:pre-line}\n.detail .en-src summary{cursor:pointer;font-size:12px;color:var(--muted)}.detail .en-src p{font-size:12px;color:var(--muted);margin-top:4px}",1)
 open(R+'index.html','w').write(s)
 print('ok')

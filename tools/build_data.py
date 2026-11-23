@@ -24,6 +24,7 @@ ap.add_argument('--pdf', default='sources/2XU_H2-27_catalogue.pdf')
 ap.add_argument('--out', default='.')
 A = ap.parse_args()
 OUT = A.out
+R0 = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BIG = os.path.join(OUT, 'big'); os.makedirs(BIG, exist_ok=True)
 MATCH = os.path.join(OUT, 'tools', 'match'); os.makedirs(MATCH, exist_ok=True)
 
@@ -69,7 +70,11 @@ for im in ws._images:
         I = I.convert('RGBA'); bg = Image.new('RGB', I.size, 'white'); bg.paste(I, mask=I.split()[3]); I = bg
     else:
         I = I.convert('RGB')
-    I.save(os.path.join(BIG, h + '.jpg'), quality=94, subsampling=0)
+    O = Image.open(io.BytesIO(data))
+    if O.format == 'JPEG' and O.mode == 'RGB':
+        open(os.path.join(BIG, h + '.jpg'), 'wb').write(data)  # 訂單表內嵌原檔 JPEG（xl/media），不重新壓縮
+    else:
+        I.save(os.path.join(BIG, h + '.jpg'), quality=94, subsampling=0)  # PNG（多半有透明）→ 白底 JPEG
     flat.setdefault(id(hit[0]), []).append((h, I.size))
 FLATDIM = {}
 for c in cws:
@@ -354,6 +359,23 @@ for h in sorted(set(it['doll'] for it in items if it['doll'])):
     b = io.BytesIO(); I.save(b, 'JPEG', quality=72)
     import base64
     IMG[h] = 'data:image/jpeg;base64,' + base64.b64encode(b.getvalue()).decode()
+
+# 中文說明（Marc 11/23：商品說明、材質都要中文）：tools/zh/zh.json 英文→繁中對照（人工翻譯，台灣運動用品用語，PWX／MCS 等技術名詞保留英文）
+# ov／dt 改放中文（網頁卡片、細節、Excel 訂單本都讀這兩欄），原廠英文留在 ovEn／dtEn。對照表沒有的句子保留英文並列在 tools/match/zh_missing.txt
+ZH = json.load(open(os.path.join(R0, 'tools', 'zh', 'zh.json'), encoding='utf-8'))
+_miss = set()
+for it in items:
+    if it.get('ov'):
+        z = ZH['ov'].get(it['ov'])
+        if z: it['ovEn'] = it['ov']; it['ov'] = z
+        else: _miss.add(it['ov'])
+    if it.get('dt'):
+        en = [l.lstrip('・') for l in it['dt'].split('\n')]; zs = [ZH['dt'].get(l) for l in en]
+        for l, z in zip(en, zs):
+            if not z: _miss.add(l)
+        it['dtEn'] = it['dt']; it['dt'] = '\n'.join('・' + (z or l) for l, z in zip(en, zs))
+open(os.path.join(R0, 'tools', 'match', 'zh_missing.txt'), 'w', encoding='utf-8').write('\n'.join(sorted(_miss)))
+print('中文說明：缺翻譯', len(_miss), '句')
 
 stamp = '2026-11-23'
 with open(os.path.join(OUT, 'data.js'), 'w') as f:
